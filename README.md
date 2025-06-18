@@ -1,366 +1,361 @@
-# Sybil-Based Untargeted Data Poisoning Attack Tool
+# 🎯 Sybil 攻擊工具使用說明
 
-🚨 **Educational and Research Purposes Only** 🚨
+## 📁 項目結構
 
-This tool implements a sybil-based untargeted poisoning attack in federated learning scenarios. The attack creates multiple fake clients (sybil nodes) that inject poisoned data to degrade the overall model performance without targeting specific classes.
+```
+sybil-attack/
+├── environment.py      # 聯邦學習環境模組
+├── attack.py          # 攻擊策略模組  
+├── setup.py           # 環境設置模組
+├── main.py            # 主執行腳本
+├── config.py          # 配置文件
+├── requirements.txt   # 依賴項列表
+└── 使用說明.md        # 本文件
+```
 
-## 📋 Table of Contents
+## 🚀 快速開始
 
-- [Overview](#overview)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Features](#features)
-- [Usage Examples](#usage-examples)
-- [Configuration](#configuration)
-- [Attack Strategies](#attack-strategies)
-- [Defense Mechanisms](#defense-mechanisms)
-- [Output Analysis](#output-analysis)
-- [Ethical Considerations](#ethical-considerations)
-- [Contributing](#contributing)
-- [License](#license)
-
-## 🎯 Overview
-
-### What is a Sybil Attack?
-
-A sybil attack in federated learning occurs when an adversary creates multiple fake identities (sybil nodes) to gain a disproportionately large influence on the global model. This tool demonstrates:
-
-- **Untargeted Poisoning**: Degrading overall model performance rather than targeting specific classes
-- **Federated Learning Simulation**: Complete FL environment with honest and malicious clients
-- **Multiple Attack Strategies**: Label flipping, noise injection, and gradient manipulation
-- **Comprehensive Analysis**: Detailed visualizations and metrics
-
-### Key Components
-
-- **FederatedLearningEnvironment**: Simulates FL with honest and sybil clients
-- **SybilClient**: Implements malicious clients with poisoning capabilities
-- **SybilAttackTool**: Orchestrates the attack and provides analysis
-- **Configuration System**: Customizable attack parameters and scenarios
-
-## 🚀 Installation
-
-### Prerequisites
-
-- Python 3.7+
-- PyTorch 1.9+
-- CUDA (optional, for GPU acceleration)
-
-### Install Dependencies
+### 步驟 1: 環境設置
 
 ```bash
-# Clone or download the project
-# Navigate to the project directory
+# 1. 檢查環境（推薦先執行）
+python setup.py
 
-# Install required packages
+# 2. 如果有缺失依賴，安裝它們
+pip install torch torchvision numpy
+
+# 或者使用 requirements.txt
 pip install -r requirements.txt
 ```
 
-### Required Packages
+### 步驟 2: 運行攻擊模擬
 
+```bash
+# 使用默認設置運行
+python main.py
+
+# 選擇特定攻擊場景
+python main.py --scenario aggressive
+
+# 自定義參數
+python main.py --honest-clients 8 --sybil-clients 4 --rounds 15
 ```
-torch>=1.9.0
-torchvision>=0.10.0
-numpy>=1.21.0
-matplotlib>=3.5.0
-scikit-learn>=1.0.0
-pandas>=1.3.0
-seaborn>=0.11.0
-tqdm>=4.62.0
+
+## 📋 詳細使用方法
+
+### 🔧 環境設置
+
+`setup.py` 模組負責環境初始化：
+
+```bash
+# 完整環境檢查
+python setup.py
+
+# 僅檢查環境（不執行攻擊）
+python main.py --setup-only
 ```
 
-## ⚡ Quick Start
+設置過程包括：
+- ✅ 檢查系統依賴項
+- ✅ 創建數據目錄  
+- ✅ 測試 PyTorch 功能
+- ✅ 驗證模組導入
 
-### Basic Attack
+### 🎯 攻擊腳本
+
+`main.py` 是主執行入口，支持多種命令行參數：
+
+#### 基本用法
+
+```bash
+# 默認中等攻擊場景
+python main.py
+
+# 顯示幫助信息
+python main.py --help
+```
+
+#### 攻擊場景選擇
+
+```bash
+# 溫和攻擊（較晚開始，影響較小）
+python main.py --scenario mild
+
+# 中等攻擊（中期開始，平衡影響）[默認]
+python main.py --scenario moderate  
+
+# 激進攻擊（早期開始，持續時間長）
+python main.py --scenario aggressive
+
+# 隱蔽攻擊（很晚才開始，難以被發現）
+python main.py --scenario stealth
+```
+
+#### 自定義參數
+
+```bash
+# 設置客戶端數量
+python main.py --honest-clients 10 --sybil-clients 5
+
+# 設置訓練輪數和攻擊開始輪數
+python main.py --rounds 20 --start-round 5
+
+# 設置投毒比例
+python main.py --poison-ratio 0.5
+
+# 指定輸出文件
+python main.py --output my_attack_results.json
+
+# 靜默模式（減少輸出）
+python main.py --quiet
+```
+
+#### 完整參數列表
+
+| 參數 | 說明 | 默認值 |
+|------|------|--------|
+| `--scenario` | 攻擊場景 (mild/moderate/aggressive/stealth) | moderate |
+| `--rounds` | 訓練輪數 | 場景決定 |
+| `--start-round` | 攻擊開始輪數 | 場景決定 |
+| `--honest-clients` | 誠實客戶端數量 | 5 |
+| `--sybil-clients` | Sybil 客戶端數量 | 3 |
+| `--poison-ratio` | 投毒比例 (0.0-1.0) | 0.3 |
+| `--output` | 結果輸出文件名 | 自動生成 |
+| `--quiet` | 靜默模式 | False |
+| `--setup-only` | 僅進行環境檢查 | False |
+
+## 🏗️ 模組說明
+
+### 📦 environment.py
+
+包含聯邦學習環境的核心組件：
+
+- `FederatedLearningEnvironment`: 聯邦學習環境類
+- `HonestClient`: 誠實客戶端類
+- `SybilClient`: Sybil 惡意客戶端類
+- `SimpleNN`: 神經網絡模型
+- `PoisonedDataset`: 投毒數據集類
 
 ```python
-from sybil_attack_tool import *
+from environment import FederatedLearningEnvironment
 
-# Create federated learning environment
-fl_env = FederatedLearningEnvironment(
+# 創建環境
+env = FederatedLearningEnvironment(
     num_honest_clients=5,
     num_sybil_clients=3,
-    dataset_name='MNIST'
+    poison_ratio=0.3
 )
-
-# Create and run attack
-attack_tool = SybilAttackTool(fl_env)
-attack_tool.conduct_attack(num_rounds=15, attack_start_round=5)
 ```
 
-### Run Complete Demonstration
+### ⚔️ attack.py
+
+包含攻擊策略和編排功能：
+
+- `SybilAttackOrchestrator`: 攻擊編排器
+- `ATTACK_SCENARIOS`: 預定義攻擊場景
+- 聯邦平均算法
+- 攻擊效果分析
+
+```python
+from attack import SybilAttackOrchestrator
+
+# 創建攻擊編排器
+orchestrator = SybilAttackOrchestrator(env)
+
+# 運行攻擊模擬
+results = orchestrator.run_attack_simulation(
+    total_rounds=12,
+    attack_start_round=3
+)
+```
+
+### ⚙️ setup.py
+
+環境設置和驗證：
+
+- `EnvironmentSetup`: 環境設置類
+- `quick_setup()`: 快速設置函數
+- `validate_environment()`: 環境驗證函數
+
+```python
+from setup import quick_setup
+
+# 執行環境設置
+success, config = quick_setup()
+```
+
+## 📊 結果輸出
+
+攻擊完成後會生成：
+
+1. **控制台輸出**: 實時進度和結果分析
+2. **JSON 結果文件**: 詳細的攻擊數據和統計
+3. **文字可視化**: 攻擊進度條形圖
+
+### 結果文件格式
+
+```json
+{
+  "environment_info": {
+    "num_honest_clients": 5,
+    "num_sybil_clients": 3,
+    "sybil_ratio": 0.375
+  },
+  "attack_effectiveness": {
+    "max_accuracy_drop": 0.0332,
+    "avg_attack_impact": 0.0289,
+    "effectiveness_level": "低效"
+  },
+  "training_history": [...]
+}
+```
+
+## 🔍 常見使用場景
+
+### 場景 1: 基礎攻擊測試
 
 ```bash
-python sybil_attack_tool.py
+# 使用默認設置進行快速測試
+python main.py
 ```
 
-### Run Example Scenarios
+### 場景 2: 不同攻擊強度比較
 
 ```bash
-python example_usage.py
+# 測試不同場景
+python main.py --scenario mild --output mild_attack.json
+python main.py --scenario aggressive --output aggressive_attack.json
 ```
 
-## 🎛️ Features
+### 場景 3: 參數敏感性分析
 
-### Attack Capabilities
+```bash
+# 測試不同 Sybil 比例
+python main.py --sybil-clients 2 --output low_sybil.json
+python main.py --sybil-clients 6 --output high_sybil.json
 
-- **Multiple Sybil Clients**: Simulate various numbers of malicious clients
-- **Untargeted Poisoning**: Degrade overall model performance
-- **Label Flipping**: Randomly corrupt training labels
-- **Noise Injection**: Add Gaussian noise to training data
-- **Gradient Manipulation**: Use gradient ascent instead of descent
-- **Timing Control**: Specify when attacks begin during training
+# 測試不同投毒比例
+python main.py --poison-ratio 0.1 --output low_poison.json
+python main.py --poison-ratio 0.5 --output high_poison.json
+```
 
-### Analysis Tools
+### 場景 4: 大規模實驗
 
-- **Real-time Monitoring**: Track accuracy and loss during training
-- **Visual Analysis**: Comprehensive plots showing attack impact
-- **Performance Metrics**: Detailed statistics on attack effectiveness
-- **Export Results**: Save data and visualizations for further analysis
+```bash
+# 更多客戶端和更長訓練
+python main.py --honest-clients 20 --sybil-clients 10 --rounds 30
+```
 
-### Customization Options
+## ⚠️ 注意事項
 
-- **Configurable Parameters**: Easy-to-modify attack settings
-- **Multiple Scenarios**: Predefined attack intensities (mild, moderate, severe, stealth)
-- **Custom Poisoning**: Extend with your own poisoning strategies
-- **Defense Evaluation**: Test attacks against defensive mechanisms
+### 系統要求
 
-## 📖 Usage Examples
+- Python 3.7+
+- PyTorch 1.8+
+- 至少 2GB 可用內存
+- 建議使用 GPU（可選）
 
-### Example 1: Basic Attack
+### 運行時間
+
+- 默認設置: 約 2-5 分鐘
+- 大規模實驗: 可能需要 10-30 分鐘
+
+### 故障排除
+
+1. **導入錯誤**: 確保所有模組在同一目錄
+2. **依賴缺失**: 運行 `python setup.py` 檢查
+3. **內存不足**: 減少客戶端數量或批大小
+4. **CUDA 錯誤**: 可以在 CPU 模式下運行
+
+## 🔬 研究使用
+
+### 自定義實驗
+
+可以修改以下文件進行自定義研究：
+
+- `config.py`: 調整默認參數
+- `environment.py`: 修改客戶端行為或數據分布
+- `attack.py`: 實現新的攻擊策略
+- `main.py`: 添加新的實驗選項
+
+### 批量實驗示例
+
+```bash
+#!/bin/bash
+# 批量實驗腳本
+
+# 測試不同 Sybil 比例
+for sybil in 2 4 6 8; do
+    python main.py --sybil-clients $sybil --output "sybil_${sybil}.json" --quiet
+done
+
+# 測試不同攻擊場景
+for scenario in mild moderate aggressive stealth; do
+    python main.py --scenario $scenario --output "${scenario}_attack.json" --quiet
+done
+```
+
+## 📚 進階使用
+
+### 程式化使用
 
 ```python
-# Simple sybil attack with default parameters
-fl_env = FederatedLearningEnvironment(
-    num_honest_clients=5,
-    num_sybil_clients=3
+# 直接使用模組進行程式化控制
+from environment import FederatedLearningEnvironment
+from attack import SybilAttackOrchestrator
+
+# 創建環境
+env = FederatedLearningEnvironment(
+    num_honest_clients=10,
+    num_sybil_clients=5
 )
-attack_tool = SybilAttackTool(fl_env)
-attack_tool.conduct_attack(num_rounds=10, attack_start_round=3)
+
+# 創建攻擊器
+attacker = SybilAttackOrchestrator(env)
+
+# 逐步執行攻擊
+for round_num in range(15):
+    result = attacker.execute_training_round()
+    print(f"Round {round_num}: Accuracy = {result['accuracy']:.4f}")
+
+# 分析結果
+effectiveness = attacker.analyze_attack_effectiveness()
+print(f"Attack effectiveness: {effectiveness['effectiveness_level']}")
 ```
 
-### Example 2: Configurable Attack
+## 📄 輸出文件管理
 
-```python
-from config import AttackConfig, AttackScenarios
+結果文件會自動保存為 JSON 格式，包含時間戳。您可以：
 
-# Use predefined moderate attack scenario
-AttackScenarios.moderate_attack()
+1. **指定文件名**: `--output custom_name.json`
+2. **組織實驗結果**: 創建子目錄存放不同實驗
+3. **數據分析**: 使用 Python 或其他工具分析 JSON 結果
 
-fl_env = FederatedLearningEnvironment(
-    num_honest_clients=AttackConfig.NUM_HONEST_CLIENTS,
-    num_sybil_clients=AttackConfig.NUM_SYBIL_CLIENTS
-)
-attack_tool = SybilAttackTool(fl_env)
-attack_tool.conduct_attack(
-    num_rounds=AttackConfig.TOTAL_ROUNDS,
-    attack_start_round=AttackConfig.ATTACK_START_ROUND
-)
-```
+這個模組化的設計讓您可以：
+- 🔧 獨立進行環境設置
+- ⚔️ 靈活配置攻擊參數  
+- 📊 方便分析實驗結果
+- 🔬 支持大規模研究實驗
 
-### Example 3: Custom Poisoning Strategy
+## 🚨 教育與研究用途說明
 
-```python
-class CustomSybilClient(SybilClient):
-    def _create_poisoned_dataset(self, original_dataset):
-        # Implement your custom poisoning logic here
-        # This example shows label flipping to adjacent classes
-        # ... (see example_usage.py for full implementation)
-        pass
+**此工具僅用於教育和研究目的**
 
-# Use custom sybil clients
-fl_env = FederatedLearningEnvironment(num_honest_clients=6, num_sybil_clients=2)
-fl_env.sybil_clients = [CustomSybilClient(...) for i in range(2)]
-```
+這個工具實現了聯邦學習中基於 Sybil 的無目標數據投毒攻擊。此攻擊創建多個虛假客戶端（Sybil 節點）注入投毒數據，以降低整體模型性能而不針對特定類別。
 
-## ⚙️ Configuration
+### 技術特性
 
-### Attack Parameters
+- **無目標投毒**: 降低整體模型性能而非針對特定類別
+- **聯邦學習模擬**: 完整的聯邦學習環境，包含誠實和惡意客戶端
+- **多種攻擊策略**: 標籤翻轉、噪聲注入和梯度操縱
+- **綜合分析**: 詳細的可視化和指標分析
 
-```python
-class AttackConfig:
-    # Environment
-    NUM_HONEST_CLIENTS = 5      # Number of honest clients
-    NUM_SYBIL_CLIENTS = 3       # Number of sybil clients
-    DATASET_NAME = 'MNIST'      # Dataset to use
-    
-    # Attack Strategy
-    POISON_RATIO = 0.3          # Ratio of poisoned samples
-    ATTACK_START_ROUND = 5      # When to start the attack
-    TOTAL_ROUNDS = 15           # Total training rounds
-    
-    # Training
-    LEARNING_RATE_HONEST = 0.01 # LR for honest clients
-    LEARNING_RATE_SYBIL = 0.05  # LR for sybil clients (higher for more damage)
-    
-    # Poisoning
-    LABEL_FLIP_PROBABILITY = 0.3 # Probability of label flipping
-    NOISE_INTENSITY = 0.1        # Intensity of noise injection
-```
+### 倫理使用準則
 
-### Predefined Scenarios
+本工具專為以下用途設計：
+- 學術研究和教育
+- 聯邦學習安全性分析
+- 防禦機制開發和測試
+- 安全性漏洞研究
 
-```python
-from config import AttackScenarios
-
-# Configure different attack intensities
-AttackScenarios.mild_attack()      # Low impact attack
-AttackScenarios.moderate_attack()  # Balanced attack
-AttackScenarios.severe_attack()    # High impact attack
-AttackScenarios.stealth_attack()   # Hard-to-detect attack
-```
-
-## 🗡️ Attack Strategies
-
-### 1. Label Flipping
-
-Randomly changes training labels to incorrect values:
-
-```python
-# Random label flipping
-poisoned_label = random.randint(0, num_classes - 1)
-
-# Adjacent class flipping (more subtle)
-poisoned_label = (original_label + 1) % num_classes
-```
-
-### 2. Noise Injection
-
-Adds Gaussian noise to training data:
-
-```python
-noise = torch.randn_like(data) * noise_intensity
-poisoned_data = torch.clamp(data + noise, 0, 1)
-```
-
-### 3. Gradient Manipulation
-
-Uses gradient ascent instead of descent to maximize loss:
-
-```python
-# Maximize loss instead of minimizing (untargeted attack)
-loss = -criterion(output, target)  # Negative loss
-loss.backward()
-optimizer.step()
-```
-
-### 4. Model Parameter Amplification
-
-Amplifies malicious updates during aggregation:
-
-```python
-# Amplify sybil client contributions
-amplified_params = sybil_params * amplification_factor
-```
-
-## 🛡️ Defense Mechanisms
-
-The tool includes basic defense mechanisms for evaluation:
-
-### Trimmed Mean Aggregation
-
-```python
-class DefensiveAggregation(SybilAttackTool):
-    def _federated_averaging(self, local_models):
-        # Calculate parameter distances from median
-        # Remove outliers (potential sybil clients)
-        # Aggregate only trusted models
-        pass
-```
-
-### Parameter Distance Analysis
-
-```python
-# Calculate distances between model parameters
-distances = [torch.norm(params - median_params) for params in all_params]
-
-# Filter out models with high distances
-trusted_models = filter_outliers(local_models, distances)
-```
-
-## 📊 Output Analysis
-
-### Generated Files
-
-- **`sybil_attack_analysis.png`**: Comprehensive visualization of attack results
-- **`sybil_attack_results.csv`**: Detailed numerical results for further analysis
-
-### Visualization Components
-
-1. **Accuracy Over Time**: Shows model performance degradation
-2. **Loss Over Time**: Displays training loss progression
-3. **Attack Impact**: Quantifies accuracy degradation
-4. **Attack Summary**: Configuration and effectiveness metrics
-
-### Key Metrics
-
-- **Maximum Accuracy Drop**: Peak performance degradation
-- **Final Model Accuracy**: End-of-training performance
-- **Attack Effectiveness**: Categorized as High/Moderate/Low
-- **Sybil Ratio**: Proportion of malicious clients
-
-## ⚖️ Ethical Considerations
-
-### Research Ethics
-
-This tool is designed for:
-
-- ✅ **Educational purposes**: Understanding federated learning vulnerabilities
-- ✅ **Security research**: Developing defense mechanisms
-- ✅ **Academic studies**: Publishing research on FL security
-- ✅ **Red team exercises**: Testing system robustness
-
-### Prohibited Uses
-
-- ❌ **Malicious attacks**: Do not use against real systems without permission
-- ❌ **Unauthorized testing**: Only test on systems you own or have explicit permission
-- ❌ **Commercial exploitation**: Do not use for unauthorized competitive advantage
-
-### Best Practices
-
-1. **Obtain Permission**: Always get explicit authorization before testing
-2. **Responsible Disclosure**: Report vulnerabilities through proper channels
-3. **Educational Focus**: Use for learning and improving security
-4. **Documentation**: Maintain clear records of research activities
-
-## 🚨 Disclaimer
-
-**This tool is provided for educational and research purposes only.**
-
-- The authors are not responsible for any misuse of this tool
-- Users must comply with all applicable laws and regulations
-- This tool should only be used in controlled, authorized environments
-- Consider the ethical implications of your research
-
-## 🤝 Contributing
-
-We welcome contributions that improve the educational value and research capabilities of this tool:
-
-### Areas for Contribution
-
-- **New Attack Strategies**: Implement additional poisoning techniques
-- **Defense Mechanisms**: Add more sophisticated defensive aggregation methods
-- **Dataset Support**: Extend support to additional datasets (CIFAR-10, etc.)
-- **Visualization**: Improve analysis and visualization capabilities
-- **Documentation**: Enhance documentation and examples
-
-### How to Contribute
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with appropriate tests
-4. Update documentation
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 📚 References
-
-- [Federated Learning: Challenges, Methods, and Future Directions](https://arxiv.org/abs/1908.07873)
-- [The Hidden Vulnerability of Distributed Learning in Byzantium](https://arxiv.org/abs/1803.07365)
-- [DBA: Distributed Backdoor Attacks against Federated Learning](https://openreview.net/forum?id=rkgyS0VFvr)
-
----
-
-**Remember: Use this tool responsibly and ethically. The goal is to improve federated learning security, not to cause harm.** 
+**請勿將此工具用於惡意目的或未經授權的系統攻擊。** 
