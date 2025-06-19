@@ -1,0 +1,45 @@
+{
+  "timestamp": "2025-06-20T03:22:21.638684",
+  "comparison_results": [
+    {
+      "scenario": "paper_replica",
+      "description": "虛擬數據攻擊 (論文實現)",
+      "attack_method": "virtual_data",
+      "metrics": {
+        "main_task_accuracy": 0.8582,
+        "poisoning_success_rate": 0.08333333333333333,
+        "attack_persistence": 0.45454545454545453,
+        "relative_performance_degradation": -0.23161726603793134,
+        "max_accuracy_drop": 0.009399999999999964,
+        "effectiveness_level": "低效"
+      },
+      "config": {
+        "total_rounds": 15,
+        "attack_start_round": 3,
+        "num_sybil_per_malicious": 5
+      }
+    },
+    {
+      "scenario": "spoil_replica",
+      "description": "SPoiL 標籤翻轉攻擊 (2023)",
+      "attack_method": "label_flipping",
+      "metrics": {
+        "main_task_accuracy": 0.8573,
+        "poisoning_success_rate": 0.0,
+        "attack_persistence": 1.0,
+        "relative_performance_degradation": -0.23851639291603305,
+        "max_accuracy_drop": -0.023699999999999943,
+        "effectiveness_level": "低效"
+      },
+      "config": {
+        "total_rounds": 10,
+        "attack_start_round": 3,
+        "num_sybil_per_malicious": 4
+      }
+    }
+  ],
+  "summary": {
+    "virtual_data_effectiveness": "低效",
+    "spoil_effectiveness": "低效"
+  }
+}

@@ -23,6 +23,16 @@ import random
 from typing import List, Dict, Tuple
 import copy
 
+# 新增 Keras 相關導入（帶回退方案）
+import pandas as pd
+try:
+    from keras.datasets import mnist
+    from keras.utils import to_categorical
+    KERAS_AVAILABLE = True
+except ImportError:
+    print("⚠️  Keras 不可用，將使用 PyTorch MNIST")
+    KERAS_AVAILABLE = False
+
 class SimpleNN(nn.Module):
     """簡單的神經網絡模型用於聯邦學習"""
     
@@ -43,6 +53,19 @@ class SimpleNN(nn.Module):
         x = self.dropout(x)
         x = self.fc3(x)
         return x
+
+class KerasMNISTDataset(Dataset):
+    """Keras MNIST 數據集包裝類，使其與 PyTorch Dataset 接口兼容"""
+    
+    def __init__(self, data: torch.Tensor, labels: torch.Tensor):
+        self.data = data
+        self.labels = labels
+        
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        return self.data[idx], self.labels[idx]
 
 class PoisonedDataset(Dataset):
     """投毒數據集類"""
@@ -123,7 +146,7 @@ class SybilClient:
             # 按照投毒比例進行投毒
             if random.random() < self.poison_ratio:
                 # 策略1：標籤翻轉攻擊 - 隨機翻轉標籤
-                poisoned_label = random.randint(0, self.num_classes - 1)
+                poisoned_label = torch.tensor(random.randint(0, self.num_classes - 1), dtype=torch.long)
                 
                 # 策略2：數據噪聲注入
                 noise = torch.randn_like(data) * 0.1
@@ -133,6 +156,9 @@ class SybilClient:
                 poisoned_labels.append(poisoned_label)
             else:
                 poisoned_samples.append(data)
+                # 確保原始標籤也是 tensor
+                if not isinstance(label, torch.Tensor):
+                    label = torch.tensor(label, dtype=torch.long)
                 poisoned_labels.append(label)
                 
         return PoisonedDataset(poisoned_samples, poisoned_labels)
@@ -142,7 +168,7 @@ class SybilClient:
         # 複製全局模型參數
         self.model.load_state_dict(global_model.state_dict())
         
-        # 使用較高的學習率來最大化損害
+        # 使用更強的攻擊策略
         optimizer = optim.SGD(self.model.parameters(), lr=self.learning_rate)
         criterion = nn.CrossEntropyLoss()
         
@@ -152,10 +178,36 @@ class SybilClient:
                 optimizer.zero_grad()
                 output = self.model(data)
                 
-                # 無目標攻擊：最大化損失而不是最小化（梯度上升）
-                loss = -criterion(output, target)  # 負損失進行梯度上升
+                # 多種攻擊策略組合
+                
+                # 策略1: 對抗目標攻擊 - 將所有標籤指向錯誤的固定類別
+                wrong_target = torch.full_like(target, (target[0].item() + 5) % self.num_classes)
+                
+                # 策略2: 添加強烈的模型擾動
+                # 在計算損失之前添加對抗性擾動
+                perturbation = torch.randn_like(output) * 0.5
+                perturbed_output = output + perturbation
+                
+                # 使用錯誤標籤進行訓練
+                loss = criterion(perturbed_output, wrong_target)
+                
+                # 策略3: 梯度反轉（模擬PoisonSGD攻擊）
                 loss.backward()
+                
+                # 反轉梯度方向來破壞模型
+                for param in self.model.parameters():
+                    if param.grad is not None:
+                        param.grad.data *= -2.0  # 反轉並放大梯度
+                
+                # 添加梯度剪裁避免過度擾動
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=5.0)
                 optimizer.step()
+                
+                # 策略4: 額外的參數擾動
+                with torch.no_grad():
+                    for param in self.model.parameters():
+                        noise = torch.randn_like(param) * 0.01
+                        param.add_(noise)
                 
         return self.model
     
@@ -199,15 +251,44 @@ class FederatedLearningEnvironment:
         self._initialize_clients()
         
     def _setup_dataset(self):
-        """設置數據集"""
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])
-        
+        """設置數據集 - 優先使用 Keras，回退到 PyTorch"""
         if self.dataset_name == 'MNIST':
-            self.train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
-            self.test_dataset = datasets.MNIST('./data', train=False, transform=transform)
+            if KERAS_AVAILABLE:
+                # 使用 Keras 方式下載 MNIST 數據集
+                print("\t[Info] 正在使用 Keras 下載 MNIST 數據集...")
+                np.random.seed(10)
+                
+                # 下載 MNIST 數據
+                (X_train_image, y_train_label), (X_test_image, y_test_label) = mnist.load_data()
+                print(f"\t[Info] train data={len(X_train_image):7,}")
+                print(f"\t[Info] test  data={len(X_test_image):7,}")
+                
+                # 數據預處理：標準化到 [0,1] 並調整形狀
+                X_train_norm = X_train_image.astype('float32') / 255.0
+                X_test_norm = X_test_image.astype('float32') / 255.0
+                
+                # 轉換為 PyTorch tensor 格式以保持與現有代碼兼容
+                self.train_data = torch.from_numpy(X_train_norm).unsqueeze(1)  # 添加通道維度
+                self.train_labels = torch.from_numpy(y_train_label).long()
+                self.test_data = torch.from_numpy(X_test_norm).unsqueeze(1)
+                self.test_labels = torch.from_numpy(y_test_label).long()
+                
+                # 創建 PyTorch Dataset
+                self.train_dataset = KerasMNISTDataset(self.train_data, self.train_labels)
+                self.test_dataset = KerasMNISTDataset(self.test_data, self.test_labels)
+            else:
+                # 回退到 PyTorch 的 MNIST 數據集
+                print("\t[Info] 正在使用 PyTorch 下載 MNIST 數據集...")
+                transform = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.1307,), (0.3081,))
+                ])
+                
+                self.train_dataset = datasets.MNIST('./data', train=True, download=True, transform=transform)
+                self.test_dataset = datasets.MNIST('./data', train=False, transform=transform)
+                print(f"\t[Info] train data={len(self.train_dataset):7,}")
+                print(f"\t[Info] test  data={len(self.test_dataset):7,}")
+            
             self.num_classes = 10
             self.input_size = 28 * 28
         else:

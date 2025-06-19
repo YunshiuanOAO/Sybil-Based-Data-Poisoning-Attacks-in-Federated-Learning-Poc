@@ -41,9 +41,9 @@ def main():
     
     parser.add_argument(
         '--scenario', 
-        choices=['mild', 'moderate', 'aggressive', 'stealth'], 
+        choices=['mild', 'moderate', 'aggressive', 'stealth', 'mild_virtual', 'moderate_virtual', 'aggressive_virtual', 'stealth_virtual', 'paper_replica', 'spoil_mild', 'spoil_moderate', 'spoil_aggressive', 'spoil_replica', 'spoil_original'], 
         default='moderate',
-        help='選擇攻擊場景 (默認: moderate)'
+        help='選擇攻擊場景 (默認: moderate, 虛擬數據攻擊: paper_replica, SPoiL攻擊: spoil_replica)'
     )
     
     parser.add_argument(
@@ -160,26 +160,35 @@ def main():
     print("-" * 50)
     
     try:
-        from attack import SybilAttackOrchestrator, ATTACK_SCENARIOS
+        from attack import SybilVirtualDataAttackOrchestrator, ATTACK_SCENARIOS, create_attack_orchestrator
         
-        # 創建攻擊編排器
-        attack_orchestrator = SybilAttackOrchestrator(fl_env)
+        # 創建虛擬數據攻擊編排器
+        attack_orchestrator = create_attack_orchestrator(
+            fl_env, 
+            num_sybil_per_malicious=ATTACK_SCENARIOS[args.scenario].get('num_sybil_per_malicious', 5)
+        )
+        
+        # 🆕 設置當前場景
+        attack_orchestrator.set_current_scenario(args.scenario)
         
         # 獲取攻擊參數
         scenario_config = ATTACK_SCENARIOS[args.scenario]
         total_rounds = args.rounds if args.rounds else scenario_config['total_rounds']
         start_round = args.start_round if args.start_round else scenario_config['attack_start_round']
+        attack_method = scenario_config.get('attack_method', 'virtual_data')
         
         if not args.quiet:
             print(f"📋 攻擊配置:")
             print(f"   場景: {args.scenario} ({scenario_config['description']})")
             print(f"   總輪數: {total_rounds}")
             print(f"   攻擊開始輪數: {start_round}")
+            print(f"   攻擊方法: {attack_method}")
         
         # 執行攻擊模擬
         results = attack_orchestrator.run_attack_simulation(
             total_rounds=total_rounds,
             attack_start_round=start_round,
+            attack_method=attack_method,
             verbose=not args.quiet
         )
         

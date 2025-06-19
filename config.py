@@ -92,11 +92,11 @@ class AttackScenarios:
     @staticmethod
     def severe_attack():
         """Configure a severe sybil attack"""
-        AttackConfig.NUM_SYBIL_CLIENTS = 5
-        AttackConfig.POISON_RATIO = 0.5
-        AttackConfig.LEARNING_RATE_SYBIL = 0.1
-        AttackConfig.NOISE_INTENSITY = 0.2
-        AttackConfig.AMPLIFICATION_FACTOR = 3.0
+        AttackConfig.NUM_SYBIL_CLIENTS = 7  # 更多惡意客戶端
+        AttackConfig.POISON_RATIO = 0.6
+        AttackConfig.LEARNING_RATE_SYBIL = 0.15
+        AttackConfig.NOISE_INTENSITY = 0.3
+        AttackConfig.AMPLIFICATION_FACTOR = 4.0  # 更強的放大係數
         
     @staticmethod
     def stealth_attack():
